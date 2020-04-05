@@ -1,0 +1,19 @@
+<component name="ProjectDictionaryState">
+  <dictionary name="Andrei">
+    <words>
+      <w>addr</w>
+      <w>fcntl</w>
+      <w>getpagesize</w>
+      <w>memcpy</w>
+      <w>mman</w>
+      <w>pageno</w>
+      <w>prot</w>
+      <w>resethand</w>
+      <w>sigaddset</w>
+      <w>sigemptyset</w>
+      <w>signo</w>
+      <w>unistd</w>
+      <w>vaddr</w>
+    </words>
+  </dictionary>
+</component>
