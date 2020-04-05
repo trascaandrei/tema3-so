@@ -87,7 +87,7 @@ int so_init_loader()
 
 	rc = sigaction(SIGSEGV, &action, &old_action);
 	DIE(rc == -1, "sigaction");
-	return -1;
+	return 0;
 }
 
 int so_execute(char *path, char *argv[])
@@ -98,5 +98,5 @@ int so_execute(char *path, char *argv[])
 
 	so_start_exec(exec, argv);
 
-	return -1;
+	return 0;
 }
