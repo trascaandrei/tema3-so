@@ -48,14 +48,26 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
         uintptr_t start = exec->segments[i].vaddr;
         uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
         if (start <= (uintptr_t)(sig->si_addr) && end >= (uintptr_t)(sig->si_addr)) {
+            if (exec->segments[i].data->added == 1) {
+                i = exec->segments_no;
+                break;
+            }
+
             pageno = ((uintptr_t)sig->si_addr - start) / getpagesize();
             perm = exec->segments[i].perm;
             start_addr = (char *)start;
             offset = exec->segments[i].offset;
             size = exec->segments[i].file_size;
+            exec->segments[i].data->added = 1;
             break;
         }
     }
+
+    // nu gaseste pagefault-ul intr-un segment => handler default
+    if (i == exec->segments_no) {
+            old_action.sa_sigaction(signum, sig, context);
+            return;
+        }
 
     flags = MAP_SHARED | MAP_FIXED | MAP_ANONYMOUS;
 
@@ -87,12 +99,26 @@ int so_init_loader()
 
 	rc = sigaction(SIGSEGV, &action, &old_action);
 	DIE(rc == -1, "sigaction");
+
 	return 0;
 }
 
 int so_execute(char *path, char *argv[])
 {
+    int rc;
+    int i;
+
 	exec = so_parse_exec(path);
+
+    for (i = 0; i < exec->segments_no; i++) {
+        exec->segments[i].data = (data_t *)malloc(sizeof(data_t));
+
+        DIE(exec->segments[i].data == NULL, "data malloc");
+
+        exec->segments[i].data->added = 0;
+    }
+	exec->data = (data_t)malloc(sizeof(data_t));
+
 	if (!exec)
 		return -1;
 
