@@ -17,10 +17,6 @@
 #define FUNC_DECL_PREFIX
 #endif /* _WIN32 */
 
-typedef struct {
-    int added;
-} data_t;
-
 FUNC_DECL_PREFIX int so_init_loader(void);
 FUNC_DECL_PREFIX int so_execute(char *path, char *argv[]);
 

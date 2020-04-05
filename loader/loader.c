@@ -14,6 +14,10 @@
 
 #include "exec_parser.h"
 
+typedef struct data {
+    int added;
+} data_t;
+
 #define DIE(assertion, call_description)    \
 	do {								    \
 		if (assertion) {				    \
@@ -115,7 +119,7 @@ int so_execute(char *path, char *argv[])
 
         DIE(exec->segments[i].data == NULL, "data malloc");
 
-        exec->segments[i].data->added = 0;
+        (data_t)exec->segments[i].data->added = 0;
     }
 	exec->data = (data_t)malloc(sizeof(data_t));
 
