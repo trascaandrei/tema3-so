@@ -9,9 +9,22 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "exec_parser.h"
+
+#define DIE(assertion, call_description)				\
+	do {								\
+		if (assertion) {					\
+			fprintf(stderr, "(%s, %d): ",			\
+					__FILE__, __LINE__);		\
+			perror(call_description);			\
+			exit(EXIT_FAILURE);				\
+		}							\
+	} while (0)
+
+#endif
 
 static so_exec_t *exec;
 static struct sigaction old_action;
