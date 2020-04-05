@@ -34,14 +34,14 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
     }
 
     for (i = 0; i < exec->segments_no; i++) {
-        uintptr_t start = exec->segments[i]->vaddr;
-        uintptr_t end = exec->segments[i]->vaddr + exec->segments[i]->mem_size;
+        uintptr_t start = exec->segments[i].vaddr;
+        uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
         if (start <= sig->si_addr && end >= sig->si_addr) {
             pageno = ((char *)sig->si_addr - start) / getpagesize();
-            perm = exec->segments[i]->perm;
+            perm = exec->segments[i].perm;
             start_addr = (char *)start;
-            offset = exec->segments[i]->offset;
-            size = exec->segments[i]->file_size;
+            offset = exec->segments[i].offset;
+            size = exec->segments[i].file_size;
             break;
         }
     }
