@@ -26,7 +26,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
     unsigned int perm;
     unsigned int offset;
     unsigned int size;
-    uintptr_t start_addr;
+    char *start_addr;
 
     if (sig->si_signo != SIGSEGV) {
         old_action.sa_sigaction(signum, sig, context);
@@ -39,7 +39,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
         if (start <= sig->si_addr && end >= sig->si_addr) {
             pageno = ((char *)sig->si_addr - start) / getpagesize();
             perm = exec->segments[i]->perm;
-            start_addr = start;
+            start_addr = (char *)start;
             offset = exec->segments[i]->offset;
             size = exec->segments[i]->file_size;
             break;
@@ -61,7 +61,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
     p = mmap(start_addr, pageno * getpagesize(), prot, flags, -1, 0);
     DIE(p == MAP_FAILED, "mmap");
 
-    memcpy(p, exec->entry + offset, size);
+    memcpy(p, (char *)(exec->entry + offset), size);
 }
 
 int so_init_loader()
@@ -72,7 +72,7 @@ int so_init_loader()
 	sigemptyset(&action.sa_mask);
     sigaddset(&action.sa_mask, SIGSEGV);
 	action.sa_flags = SA_SIGINFO;
-	signals.sa_sigaction = sig_handler;
+	action.sa_sigaction = sig_handler;
 
 	rc = sigaction(SIGSEGV, &action, &old_action);
 	DIE(rc == -1, "sigaction");
