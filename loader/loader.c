@@ -52,7 +52,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
         uintptr_t start = exec->segments[i].vaddr;
         uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
         if (start <= (uintptr_t)(sig->si_addr) && end >= (uintptr_t)(sig->si_addr)) {
-            if ((data_t)(exec->segments[i]).data->added == 1) {
+            if ((data_t *)(exec->segments[i].data)->added == 1) {
                 i = exec->segments_no;
                 break;
             }
@@ -62,7 +62,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
             start_addr = (char *)start;
             offset = exec->segments[i].offset;
             size = exec->segments[i].file_size;
-            (data_t)(exec->segments[i]).data->added = 1;
+            (data_t *)(exec->segments[i].data)->added = 1;
             break;
         }
     }
