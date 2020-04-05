@@ -14,17 +14,15 @@
 
 #include "exec_parser.h"
 
-#define DIE(assertion, call_description)				\
-	do {								\
-		if (assertion) {					\
-			fprintf(stderr, "(%s, %d): ",			\
-					__FILE__, __LINE__);		\
-			perror(call_description);			\
+#define DIE(assertion, call_description)    \
+	do {								    \
+		if (assertion) {				    \
+			fprintf(stderr, "(%s, %d): ",	\
+					__FILE__, __LINE__);	\
+			perror(call_description);		\
 			exit(EXIT_FAILURE);				\
-		}							\
+		}							        \
 	} while (0)
-
-#endif
 
 static so_exec_t *exec;
 static struct sigaction old_action;
@@ -49,7 +47,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
     for (i = 0; i < exec->segments_no; i++) {
         uintptr_t start = exec->segments[i].vaddr;
         uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
-        if (start <= (int *)sig->si_addr && end >= (int *)sig->si_addr) {
+        if (start <= (uintptr_t)(sig->si_addr) && end >= (uintptr_t)(sig->si_addr)) {
             pageno = ((char *)sig->si_addr - start) / getpagesize();
             perm = exec->segments[i].perm;
             start_addr = (char *)start;
