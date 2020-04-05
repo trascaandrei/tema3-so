@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="57f1d3b8-87a4-4d63-b8cd-6ed0329eed94" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/loader/loader.c" beforeDir="false" afterPath="$PROJECT_DIR$/loader/loader.c" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/loader/loader.h" beforeDir="false" afterPath="$PROJECT_DIR$/loader/loader.h" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -38,8 +37,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/loader/loader.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="384">
-              <caret line="16" column="20" selection-start-line="16" selection-start-column="20" selection-end-line="16" selection-end-column="20" />
+            <state relative-caret-position="354">
+              <caret line="54" column="43" selection-start-line="54" selection-start-column="43" selection-end-line="54" selection-end-column="43" />
             </state>
           </provider>
         </entry>
@@ -246,8 +245,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/loader/loader.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="384">
-          <caret line="16" column="20" selection-start-line="16" selection-start-column="20" selection-end-line="16" selection-end-column="20" />
+        <state relative-caret-position="354">
+          <caret line="54" column="43" selection-start-line="54" selection-start-column="43" selection-end-line="54" selection-end-column="43" />
         </state>
       </provider>
     </entry>
