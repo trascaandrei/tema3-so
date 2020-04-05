@@ -48,7 +48,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
         uintptr_t start = exec->segments[i].vaddr;
         uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
         if (start <= (uintptr_t)(sig->si_addr) && end >= (uintptr_t)(sig->si_addr)) {
-            pageno = ((char *)sig->si_addr - start) / getpagesize();
+            pageno = ((uintptr_t)sig->si_addr - start) / getpagesize();
             perm = exec->segments[i].perm;
             start_addr = (char *)start;
             offset = exec->segments[i].offset;
