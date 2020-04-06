@@ -42,6 +42,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
     unsigned int offset;
     unsigned int size;
     char *start_addr;
+    data_t *data = (data_t *)exec->segments[i].data;
 
     if (sig->si_signo != SIGSEGV) {
         old_action.sa_sigaction(signum, sig, context);
@@ -52,7 +53,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
         uintptr_t start = exec->segments[i].vaddr;
         uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
         if (start <= (uintptr_t)(sig->si_addr) && end >= (uintptr_t)(sig->si_addr)) {
-            if ((data_t *)(exec->segments[i].data)->added == 1) {
+            if (data->added == 1) {
                 i = exec->segments_no;
                 break;
             }
@@ -62,7 +63,7 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
             start_addr = (char *)start;
             offset = exec->segments[i].offset;
             size = exec->segments[i].file_size;
-            (data_t *)(exec->segments[i].data)->added = 1;
+            data->added = 1;
             break;
         }
     }
@@ -120,7 +121,7 @@ int so_execute(char *path, char *argv[])
 
         (data_t)exec->segments[i].data->added = 0;
     }
-	exec->data = (data_t)malloc(sizeof(data_t));
+	exec->data = malloc(sizeof(data_t));
 
 	if (!exec)
 		return -1;
