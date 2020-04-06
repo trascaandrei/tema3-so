@@ -115,13 +115,12 @@ int so_execute(char *path, char *argv[])
 	exec = so_parse_exec(path);
 
     for (i = 0; i < exec->segments_no; i++) {
-        exec->segments[i].data = (data_t *)malloc(sizeof(data_t));
+        exec->segments[i].data = malloc(sizeof(data_t));
 
         DIE(exec->segments[i].data == NULL, "data malloc");
 
-        (data_t)exec->segments[i].data->added = 0;
+        ((data_t)exec->segments[i].data).added = 0;
     }
-	exec->data = malloc(sizeof(data_t));
 
 	if (!exec)
 		return -1;
