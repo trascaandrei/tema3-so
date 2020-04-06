@@ -8,6 +8,7 @@
       <w>mman</w>
       <w>pageno</w>
       <w>prot</w>
+      <w>rdonly</w>
       <w>resethand</w>
       <w>sigaddset</w>
       <w>sigemptyset</w>

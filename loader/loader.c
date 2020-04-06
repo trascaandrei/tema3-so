@@ -29,6 +29,7 @@ typedef struct data {
 	} while (0)
 
 static so_exec_t *exec;
+static int fd;
 static struct sigaction old_action;
 
 static void sig_handler(int signum, siginfo_t *sig, void *context)
@@ -89,7 +90,8 @@ static void sig_handler(int signum, siginfo_t *sig, void *context)
     p = mmap(start_addr, pageno * getpagesize(), prot, flags, -1, 0);
     DIE(p == MAP_FAILED, "mmap");
 
-    memcpy(p, (char *)(exec->entry + offset), size);
+//    memcpy(p, (char *)(exec->entry + offset), size);
+    read(fd, p, getpagesize());
 }
 
 int so_init_loader()
@@ -113,6 +115,8 @@ int so_execute(char *path, char *argv[])
     int i;
 
 	exec = so_parse_exec(path);
+
+	fd = open(path, O_RDONLY);
 
     for (i = 0; i < exec->segments_no; i++) {
         exec->segments[i].data = malloc(sizeof(data_t));
