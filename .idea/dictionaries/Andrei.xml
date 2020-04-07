@@ -4,12 +4,16 @@
       <w>addr</w>
       <w>fcntl</w>
       <w>getpagesize</w>
+      <w>lseek</w>
+      <w>maperr</w>
       <w>memcpy</w>
       <w>mman</w>
+      <w>mprotect</w>
       <w>pageno</w>
       <w>prot</w>
       <w>rdonly</w>
       <w>resethand</w>
+      <w>segv</w>
       <w>sigaddset</w>
       <w>sigemptyset</w>
       <w>signo</w>

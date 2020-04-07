@@ -5,7 +5,6 @@
  */
 
 #include <signal.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -14,123 +13,76 @@
 
 #include "exec_parser.h"
 
-typedef struct data {
-    int added;
-} data_t;
-
-#define DIE(assertion, call_description)    \
-	do {								    \
-		if (assertion) {				    \
-			fprintf(stderr, "(%s, %d): ",	\
-					__FILE__, __LINE__);	\
-			perror(call_description);		\
-			exit(EXIT_FAILURE);				\
-		}							        \
-	} while (0)
-
 static so_exec_t *exec;
 static int fd;
 static struct sigaction old_action;
+struct sigaction action;
 
 static void sig_handler(int signum, siginfo_t *sig, void *context)
 {
-    int pageno;
-    int prot = 0;
-    int flags = 0;
-    int i;
-    char *p;
-    unsigned int perm;
-    unsigned int offset;
-    unsigned int size;
-    char *start_addr;
-    data_t *data;
+	int i;
+	char *fault = sig->si_addr;
+	int pageSize = getpagesize();
 
-    if (sig->si_signo != SIGSEGV) {
-        old_action.sa_sigaction(signum, sig, context);
-        return;
-    }
+	for (i = 0; i < exec->segments_no; i++) {
+		if ((char *)exec->segments[i].vaddr
+				+ exec->segments[i].mem_size > fault)
+			break;
+	}
 
-    for (i = 0; i < exec->segments_no; i++) {
-        uintptr_t start = exec->segments[i].vaddr;
-        uintptr_t end = exec->segments[i].vaddr + exec->segments[i].mem_size;
-        if (start <= (uintptr_t)(sig->si_addr) && end >= (uintptr_t)(sig->si_addr)) {
-            data = (data_t *)exec->segments[i].data
-            if (data->added == 1) {
-                i = exec->segments_no;
-                break;
-            }
+	// address is outside any segment => default handler
+	if (i == exec->segments_no || sig->si_code != SEGV_MAPERR)
+		old_action.sa_sigaction(signum, sig, context);
 
-            pageno = ((uintptr_t)sig->si_addr - start) / getpagesize();
-            perm = exec->segments[i].perm;
-            start_addr = (char *)start;
-            offset = exec->segments[i].offset;
-            size = exec->segments[i].file_size;
-            data->added = 1;
-            break;
-        }
-    }
+	char *vaddr = (char *)exec->segments[i].vaddr;
+	char *file_address = vaddr + exec->segments[i].file_size;
+	int pageno = (fault - vaddr) / pageSize;
 
-    // nu gaseste pagefault-ul intr-un segment => handler default
-    if (i == exec->segments_no) {
-            old_action.sa_sigaction(signum, sig, context);
-            return;
-        }
+	char *aligned = (char *)ALIGN_DOWN((uintptr_t)fault, pageSize);
+	char *addr = mmap(aligned, pageSize, PROT_WRITE,
+			MAP_ANONYMOUS | MAP_FIXED | MAP_SHARED, 0, 0);
 
-    flags = MAP_SHARED | MAP_FIXED | MAP_ANONYMOUS;
+	if (addr == MAP_FAILED)
+		exit(-1);
 
-    if (perm & PERM_R) {
-        prot |= PROT_READ;
-    }
-    if (perm & PERM_W) {
-        prot |= PROT_WRITE;
-    }
-    if (perm & PERM_X) {
-        prot |= PROT_EXEC;
-    }
+	int length = pageSize;
 
-    p = mmap(start_addr, pageno * getpagesize(), prot, flags, -1, 0);
-    DIE(p == MAP_FAILED, "mmap");
+	if (aligned + pageSize > file_address) {
+		if (aligned < file_address)
+			length = file_address - aligned;
+		else
+			length = 0;
+	}
 
-//    memcpy(p, (char *)(exec->entry + offset), size);
-    read(fd, p, getpagesize());
+	lseek(fd, exec->segments[i].offset + pageno * pageSize, SEEK_SET);
+	read(fd, addr, length);
+
+	//setting permissions on the mapped memory
+	if (mprotect(addr, pageSize, exec->segments[i].perm) == -1)
+		exit(-1);
 }
 
-int so_init_loader()
+int so_init_loader(void)
 {
-	struct sigaction action;
-	int rc;
-
 	sigemptyset(&action.sa_mask);
-    sigaddset(&action.sa_mask, SIGSEGV);
+	sigaddset(&action.sa_mask, SIGSEGV);
 	action.sa_flags = SA_SIGINFO;
 	action.sa_sigaction = sig_handler;
 
-	rc = sigaction(SIGSEGV, &action, &old_action);
-	DIE(rc == -1, "sigaction");
-
+	if (sigaction(SIGSEGV, &action, &old_action) == -1)
+		exit(-1);
 	return 0;
 }
 
 int so_execute(char *path, char *argv[])
 {
-    int i;
-
 	exec = so_parse_exec(path);
-
-	fd = open(path, O_RDONLY);
-
-    for (i = 0; i < exec->segments_no; i++) {
-        exec->segments[i].data = malloc(sizeof(data_t));
-
-        DIE(exec->segments[i].data == NULL, "data malloc");
-
-        ((data_t)exec->segments[i].data).added = 0;
-    }
-
 	if (!exec)
 		return -1;
 
+	fd = open(path, O_RDONLY);
 	so_start_exec(exec, argv);
 
+	close(fd);
 	return 0;
 }

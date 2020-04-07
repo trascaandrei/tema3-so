@@ -5,78 +5,73 @@
  */
 
 #include <signal.h>
-#include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "exec_parser.h"
 
 static so_exec_t *exec;
+static int fd;
 static struct sigaction old_action;
+struct sigaction action;
 
 static void sig_handler(int signum, siginfo_t *sig, void *context)
 {
-    int pageno;
-    int prot = 0;
-    int flags = 0;
-    int i;
-    char *p;
-    unsigned int perm;
-    unsigned int offset;
-    unsigned int size;
-    uintptr_t start_addr;
+	int i;
+	char *fault = sig->si_addr;
+	int pageSize = getpagesize();
 
-    if (sig->si_signo != SIGSEGV) {
-        old_action.sa_sigaction(signum, sig, context);
-        return;
-    }
+	for (i = 0; i < exec->segments_no; i++) {
+		if ((char *)exec->segments[i].vaddr
+				+ exec->segments[i].mem_size > fault)
+			break;
+	}
 
-    for (i = 0; i < exec->segments_no; i++) {
-        uintptr_t start = exec->segments[i]->vaddr;
-        uintptr_t end = exec->segments[i]->vaddr + exec->segments[i]->mem_size;
-        if (start <= sig->si_addr && end >= sig->si_addr) {
-            pageno = ((char *)sig->si_addr - start) / getpagesize();
-            perm = exec->segments[i]->perm;
-            start_addr = start;
-            offset = exec->segments[i]->offset;
-            size = exec->segments[i]->file_size;
-            break;
-        }
-    }
+	// address is outside any segment => default handler
+	if (i == exec->segments_no || sig->si_code != SEGV_MAPERR)
+		old_action.sa_sigaction(signum, sig, context);
 
-    flags = MAP_SHARED | MAP_FIXED | MAP_ANONYMOUS;
+	char *vaddr = (char *)exec->segments[i].vaddr;
+	char *file_address = vaddr + exec->segments[i].file_size;
+	int pageno = (fault - vaddr) / pageSize;
 
-    if (perm & PERM_R) {
-        prot |= PROT_READ;
-    }
-    if (perm & PERM_W) {
-        prot |= PROT_WRITE;
-    }
-    if (perm & PERM_X) {
-        prot |= PROT_EXEC;
-    }
+	char *aligned = (char *)ALIGN_DOWN((uintptr_t)fault, pageSize);
+	char *addr = mmap(aligned, pageSize, PROT_WRITE,
+			MAP_ANONYMOUS | MAP_FIXED | MAP_SHARED, 0, 0);
 
-    p = mmap(start_addr, pageno * getpagesize(), prot, flags, -1, 0);
-    DIE(p == MAP_FAILED, "mmap");
+	if (addr == MAP_FAILED)
+		exit(-1);
 
-    memcpy(p, exec->entry + offset, size);
+	int length = pageSize;
+
+	if (aligned + pageSize > file_address) {
+		if (aligned < file_address)
+			length = file_address - aligned;
+		else
+			length = 0;
+	}
+
+	lseek(fd, exec->segments[i].offset + pageno * pageSize, SEEK_SET);
+	read(fd, addr, length);
+
+	//setting permissions on the mapped memory
+	if (mprotect(addr, pageSize, exec->segments[i].perm) == -1)
+		exit(-1);
 }
 
-int so_init_loader()
+int so_init_loader(void)
 {
-	struct sigaction action;
-	int rc;
-
 	sigemptyset(&action.sa_mask);
-    sigaddset(&action.sa_mask, SIGSEGV);
+	sigaddset(&action.sa_mask, SIGSEGV);
 	action.sa_flags = SA_SIGINFO;
-	signals.sa_sigaction = sig_handler;
+	action.sa_sigaction = sig_handler;
 
-	rc = sigaction(SIGSEGV, &action, &old_action);
-	DIE(rc == -1, "sigaction");
-	return -1;
+	if (sigaction(SIGSEGV, &action, &old_action) == -1)
+		exit(-1);
+	return 0;
 }
 
 int so_execute(char *path, char *argv[])
@@ -85,7 +80,9 @@ int so_execute(char *path, char *argv[])
 	if (!exec)
 		return -1;
 
+	fd = open(path, O_RDONLY);
 	so_start_exec(exec, argv);
 
-	return -1;
+	close(fd);
+	return 0;
 }
